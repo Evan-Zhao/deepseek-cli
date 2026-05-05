@@ -161,6 +161,10 @@ class DeepSeekCLI:
             original_raw_mode = self.chat_handler.raw_mode
             self.chat_handler.raw_mode = raw
 
+            # Show a processing indicator that scrolls away naturally once
+            # the response output starts printing below it.
+            console.print("[dim]⏳ Thinking...[/dim]")
+
             def make_request():
                 # Rebuild kwargs on every attempt so prefix-mode and any
                 # state changes (e.g. new API key after 401 recovery) apply.
