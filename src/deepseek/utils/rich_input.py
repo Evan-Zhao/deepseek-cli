@@ -7,12 +7,10 @@ Provides a prompt_toolkit-based input experience with:
   - Syntax-highlighted prompts via ``rich``
 """
 
-from __future__ import annotations
-
 import os
 import re
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import (
@@ -21,7 +19,8 @@ from prompt_toolkit.completion import (
     Completion,
 )
 from prompt_toolkit.document import Document
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.filters import has_completions
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.styles import Style
 from rich.console import Console
 
@@ -248,20 +247,27 @@ class RichInputHandler:
         """Set up enter / submit key bindings matching the existing CLI."""
         bindings = KeyBindings()
 
+        @bindings.add("enter", filter=has_completions)
+        def _accept_completion(event: KeyPressEvent):
+            buf = event.current_buffer
+            cs = buf.complete_state
+            if cs is not None and cs.current_completion is not None:
+                buf.apply_completion(cs.current_completion)
+
         if self.submit_mode == "shift-enter":
 
-            @bindings.add("enter")
-            def _newline(event):
+            @bindings.add("enter", filter=~has_completions)
+            def _newline(event: KeyPressEvent):
                 event.current_buffer.insert_text("\n")
 
             @bindings.add("s-enter")
-            def _submit_shift(event):
+            def _submit_shift(event: KeyPressEvent):
                 event.current_buffer.validate_and_handle()
 
         else:  # empty-line mode (default)
 
-            @bindings.add("enter")
-            def _enter_or_submit(event):
+            @bindings.add("enter", filter=~has_completions)
+            def _enter_or_submit(event: KeyPressEvent):
                 buf = event.current_buffer
                 if buf.document.current_line.strip() == "":
                     buf.validate_and_handle()
@@ -270,13 +276,13 @@ class RichInputHandler:
 
         # Ctrl+D always submits
         @bindings.add("c-d")
-        def _ctrl_d(event):
+        def _ctrl_d(event: KeyPressEvent):
             event.current_buffer.validate_and_handle()
 
         # Escape key to cancel completions
         @bindings.add("escape")
-        def _cancel_completions(event):
-            event.current_buffer.cancel_completions()
+        def _cancel_completions(event: KeyPressEvent):
+            event.current_buffer.cancel_completion()
 
         return bindings
 
