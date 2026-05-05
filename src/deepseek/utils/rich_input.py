@@ -409,7 +409,7 @@ def _is_command(text: str) -> bool:
     """
     first_line = text.lstrip().split("\n", 1)[0]
     stripped = first_line.strip()
-    return stripped.startswith("/") or stripped in ("quit", "exit")
+    return stripped.startswith("/")
 
 
 # ---------------------------------------------------------------------------

@@ -258,7 +258,7 @@ class DeepSeekCLI:
             panel = Panel(
                 Align.center(
                     "Use natural language to interact with AI.\n"
-                    "Type /help for commands, or exit to quit.\n"
+                    "Type /help for commands, or /exit to quit.\n"
                     "[dim]💡 Type @ to mention files from the current project[/dim]",
                     vertical="middle",
                 ),
@@ -284,7 +284,7 @@ class DeepSeekCLI:
                 box=box.ROUNDED,
                 padding=(1, 2),
                 title="[bold #4BCFFF]🚀 Welcome 🚀[/bold #4BCFFF]",
-                subtitle="[italic #7A7CFF]Type 'exit' to quit[/italic #7A7CFF]",
+                subtitle="[italic #7A7CFF]Type /exit to quit[/italic #7A7CFF]",
                 expand=True,
             )
             console.print(welcome_panel)

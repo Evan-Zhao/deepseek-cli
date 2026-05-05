@@ -39,7 +39,7 @@ class CommandHandler:
 
         command_lower = command_raw.lower()
 
-        if command_lower in ["quit", "exit", "/quit", "/exit"]:
+        if command_lower in ["/quit", "/exit"]:
             return False, "Goodbye!"
 
         elif command_lower == "/raw":
@@ -309,7 +309,6 @@ class CommandHandler:
   /about       - Show API information and contact details
   /help        - Show this help message
   /quit, /exit - Exit the program
-  quit, exit   - Exit the program
 
 Notes:
   - deepseek-chat is DeepSeek-V3.2 (Non-thinking Mode) with 128K context, 8K output
