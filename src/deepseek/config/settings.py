@@ -85,6 +85,35 @@ MODEL_CONFIGS = {
         "has_reasoning_content": True,  # Special field for reasoning output
         "updated": "December 2025",
     },
+    "deepseek-v4-flash": {
+        "name": "deepseek-v4-flash",
+        "version": "DeepSeek-V4",
+        "context_length": 128000,  # 128K context
+        "max_tokens": 64000,  # Default 32K, Maximum 64K
+        "default_max_tokens": 32000,
+        "description": "DeepSeek-V4 model (flash) with 128K context",
+        "supports_json": True,
+        "supports_function_calling": False,  # Not supported, falls back to deepseek-chat if tools provided
+        "supports_prefix_completion": True,
+        "supports_fim": False,
+        "has_reasoning_content": True,  # Special field for reasoning output
+        "updated": "May 2026",
+    },
+    "deepseek-v4-pro": {
+        "name": "deepseek-v4-pro",
+        "version": "DeepSeek-V4",
+        "mode": "Thinking Mode",
+        "context_length": 128000,  # 128K context
+        "max_tokens": 64000,  # Default 32K, Maximum 64K
+        "default_max_tokens": 32000,
+        "description": "DeepSeek-V4 model (pro) with 128K context",
+        "supports_json": True,
+        "supports_function_calling": False,  # Not supported, falls back to deepseek-chat if tools provided
+        "supports_prefix_completion": True,
+        "supports_fim": False,
+        "has_reasoning_content": True,  # Special field for reasoning output
+        "updated": "May 2026",
+    },
 }
 
 # Temperature presets
