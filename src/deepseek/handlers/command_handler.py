@@ -3,21 +3,13 @@
 import json
 import os
 import shlex
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Tuple
 
-# Simplified import handling with clear fallback chain
-try:
-    # When installed via pip/pipx (package_dir={"": "src"})
-    from api.client import APIClient
-    from handlers.chat_handler import ChatHandler
-    from handlers.file_handler import FileHandler, pick_files
-    from config.settings import API_CONTACT, API_LICENSE, API_TERMS, API_DOCS
-except ImportError:
-    # When running from source (development mode)
-    from src.api.client import APIClient
-    from src.handlers.chat_handler import ChatHandler
-    from src.handlers.file_handler import FileHandler, pick_files
-    from src.config.settings import API_CONTACT, API_LICENSE, API_TERMS, API_DOCS
+from deepseek.api.client import APIClient
+from deepseek.config.settings import API_CONTACT, API_DOCS, API_LICENSE, API_TERMS
+from deepseek.handlers.chat_handler import ChatHandler
+from deepseek.handlers.file_handler import FileHandler, pick_files
+
 
 class CommandHandler:
     def __init__(

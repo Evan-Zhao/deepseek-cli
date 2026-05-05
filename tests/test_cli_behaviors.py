@@ -1,25 +1,15 @@
 """Behavior-focused tests for CLI flows and persistence resolution."""
 
 import io
-import sys
 import warnings
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Import helpers – support both installed-package and source-tree layouts
-# ---------------------------------------------------------------------------
-try:
-    from cli.deepseek_cli import _read_input, main
-    from utils.persistence import _resolve_dirs
-    import cli.deepseek_cli as _cli_mod
-except ImportError:
-    from src.cli.deepseek_cli import _read_input, main
-    from src.utils.persistence import _resolve_dirs
-    import src.cli.deepseek_cli as _cli_mod
-
+import deepseek.cli.deepseek_cli as _cli_mod
+from deepseek.cli.deepseek_cli import _read_input
+from deepseek.utils.persistence import _resolve_dirs
 
 # ===========================================================================
 # _read_input()

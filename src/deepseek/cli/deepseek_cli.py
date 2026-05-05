@@ -4,15 +4,20 @@ import argparse
 import atexit
 import signal
 import sys
-from typing import Optional, Tuple
-import os
-from rich.console import Console
-from rich.panel import Panel
+from typing import Optional
+
+from pyfiglet import Figlet
 from rich import box
 from rich.align import Align
-from rich.markdown import Markdown
+from rich.console import Console
+from rich.panel import Panel
 from rich.text import Text
-from pyfiglet import Figlet
+
+from deepseek.api.client import APIClient
+from deepseek.handlers.chat_handler import ChatHandler
+from deepseek.handlers.command_handler import CommandHandler
+from deepseek.handlers.error_handler import ErrorHandler
+from deepseek.handlers.file_handler import FileHandler
 
 console = Console()
 
@@ -91,22 +96,6 @@ def multiline_input(prompt: str, submit_mode: str = "shift-enter") -> str:
 
     return "\n".join(lines)
 
-
-# Simplified import handling with clear fallback chain
-try:
-    # When installed via pip/pipx (package_dir={"": "src"})
-    from api.client import APIClient
-    from handlers.chat_handler import ChatHandler
-    from handlers.command_handler import CommandHandler
-    from handlers.error_handler import ErrorHandler
-    from handlers.file_handler import FileHandler
-except ImportError:
-    # When running from source (development mode)
-    from src.api.client import APIClient
-    from src.handlers.chat_handler import ChatHandler
-    from src.handlers.command_handler import CommandHandler
-    from src.handlers.error_handler import ErrorHandler
-    from src.handlers.file_handler import FileHandler
 
 
 class DeepSeekCLI:

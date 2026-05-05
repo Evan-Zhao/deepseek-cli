@@ -1,18 +1,12 @@
 """DeepSeek API client handler"""
 
 import os
-from openai import OpenAI
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-# Simplified import handling with clear fallback chain
-try:
-    # When installed via pip/pipx (package_dir={"": "src"})
-    from config.settings import DEFAULT_BASE_URL, DEFAULT_BETA_URL
-    from utils.exceptions import DeepSeekError
-except ImportError:
-    # When running from source (development mode)
-    from src.config.settings import DEFAULT_BASE_URL, DEFAULT_BETA_URL
-    from src.utils.exceptions import DeepSeekError
+from openai import OpenAI
+
+from deepseek.config.settings import DEFAULT_BASE_URL, DEFAULT_BETA_URL
+from deepseek.utils.exceptions import DeepSeekError
 
 # Anthropic API compatibility
 ANTHROPIC_BASE_URL = "https://api.deepseek.com/anthropic"

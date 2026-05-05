@@ -1,41 +1,26 @@
 "Chat handler for DeepSeek CLI"
 
 import json
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
+from rich import box
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.live import Live
-from rich import box 
+from rich.markdown import Markdown
 from rich.panel import Panel
 
+from deepseek.config.settings import (
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    MAX_FUNCTIONS,
+    MAX_HISTORY_LENGTH,
+    MAX_STOP_SEQUENCES,
+    MODEL_CONFIGS,
+    TEMPERATURE_PRESETS,
+)
+from deepseek.utils.persistence import PersistenceManager
+from deepseek.utils.version_checker import check_version
 
-# Simplified import handling with clear fallback chain
-try:
-    # When installed via pip/pipx (package_dir={"": "src"})
-    from config.settings import (
-        MODEL_CONFIGS,
-        TEMPERATURE_PRESETS,
-        DEFAULT_MAX_TOKENS,
-        DEFAULT_TEMPERATURE,
-        MAX_FUNCTIONS,
-        MAX_STOP_SEQUENCES,
-        MAX_HISTORY_LENGTH
-    )
-    from utils.version_checker import check_version
-    from utils.persistence import PersistenceManager
-except ImportError:
-    # When running from source (development mode)
-    from src.config.settings import (
-        MODEL_CONFIGS,
-        TEMPERATURE_PRESETS,
-        DEFAULT_MAX_TOKENS,
-        DEFAULT_TEMPERATURE,
-        MAX_FUNCTIONS,
-        MAX_STOP_SEQUENCES,
-        MAX_HISTORY_LENGTH
-    )
-    from src.utils.version_checker import check_version
-    from src.utils.persistence import PersistenceManager
 
 class ChatHandler:
     def __init__(self, *, stream: bool = False) -> None:

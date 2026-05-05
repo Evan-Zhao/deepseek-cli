@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -40,7 +40,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "deepseek=cli.deepseek_cli:main",
+            "deepseek=deepseek.cli.deepseek_cli:main",
         ],
     },
     package_data={

@@ -5,17 +5,9 @@ from __future__ import annotations
 import os
 from unittest.mock import MagicMock
 
-import pytest
-
-try:
-    from handlers import file_handler as fh_mod
-    from handlers.file_handler import FileHandler
-    from handlers.command_handler import CommandHandler
-except ImportError:
-    from src.handlers import file_handler as fh_mod
-    from src.handlers.file_handler import FileHandler
-    from src.handlers.command_handler import CommandHandler
-
+from deepseek.handlers import file_handler as fh_mod
+from deepseek.handlers.command_handler import CommandHandler
+from deepseek.handlers.file_handler import FileHandler
 
 # ===========================================================================
 # FileHandler.attach
