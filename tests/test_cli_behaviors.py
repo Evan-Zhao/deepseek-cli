@@ -83,7 +83,7 @@ def _make_args(**kwargs):
         model=None,
         raw=False,
         system="You are a helpful assistant.",
-        stream=False,
+        no_stream=False,
         multiline=False,
         multiline_submit="empty-line",
         json=False,

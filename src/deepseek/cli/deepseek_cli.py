@@ -106,7 +106,7 @@ class DeepSeekCLI:
     def __init__(
         self,
         *,
-        stream: bool = False,
+        stream: bool = True,
         multiline: bool = False,
         multiline_submit: str = "empty-line",
         rich_input: bool = True,
@@ -411,13 +411,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the system message (default: 'You are a helpful assistant.')",
     )
 
-    # Streaming
-    parser.add_argument("-s", "--stream", action="store_true", help="Enable streaming mode")
+    # Streaming (opt-out — on by default)
     parser.add_argument(
         "--no-stream",
-        dest="stream",
-        action="store_false",
-        help="Disable streaming mode",
+        action="store_true",
+        default=False,
+        dest="no_stream",
+        help="Disable streaming mode (streaming shows tokens as they arrive)",
     )
 
     # Output / mode flags (mirror REPL commands)
@@ -559,7 +559,7 @@ def main() -> None:
             query = read_text
 
     cli = DeepSeekCLI(
-        stream=args.stream,
+        stream=not args.no_stream,
         multiline=args.multiline,
         multiline_submit=args.multiline_submit,
         rich_input=not args.no_rich_input,

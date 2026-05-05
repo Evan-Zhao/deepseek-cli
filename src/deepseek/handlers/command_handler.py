@@ -304,7 +304,7 @@ class CommandHandler:
   /multiline    - Show multiline mode information (enable with --multiline flag)
   /raw         - Toggle raw output mode (bypass formatting for edge cases)
   /json        - Toggle JSON output mode
-  /stream      - Toggle streaming mode
+  /stream      - Toggle streaming mode (on by default)
   /beta        - Toggle beta API endpoint
   /prefix      - Toggle prefix completion mode (last user msg becomes assistant prefix)
   /fim         - Toggle Fill-in-the-Middle mode (use <fim_prefix>/<fim_suffix> tags)

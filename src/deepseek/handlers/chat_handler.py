@@ -23,7 +23,7 @@ from deepseek.utils.version_checker import check_version
 
 
 class ChatHandler:
-    def __init__(self, *, stream: bool = False) -> None:
+    def __init__(self, *, stream: bool = True) -> None:
         self.messages: List[Dict[str, Any]] = []
         self.model: str = "deepseek-chat"
         self.stream: bool = stream
