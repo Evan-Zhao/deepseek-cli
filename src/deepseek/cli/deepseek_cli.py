@@ -18,6 +18,7 @@ from deepseek.handlers.chat_handler import ChatHandler
 from deepseek.handlers.command_handler import CommandHandler
 from deepseek.handlers.error_handler import ErrorHandler
 from deepseek.handlers.file_handler import FileHandler
+from deepseek.utils.rich_input import RichInputHandler
 
 console = Console()
 
@@ -40,6 +41,10 @@ def multiline_input(prompt: str, submit_mode: str = "shift-enter") -> str:
     submit_mode:
       - shift-enter: Enter inserts newline, Shift+Enter submits.
       - empty-line: Enter inserts newline, a blank line submits.
+
+    Note: This legacy function is kept for backward compatibility.
+    The new ``RichInputHandler`` (used by default) provides the same
+    functionality plus ``@`` file mention completions.
     """
     if PromptSession and KeyBindings:
         key_bindings = KeyBindings()
@@ -97,7 +102,6 @@ def multiline_input(prompt: str, submit_mode: str = "shift-enter") -> str:
     return "\n".join(lines)
 
 
-
 class DeepSeekCLI:
     def __init__(
         self,
@@ -105,16 +109,19 @@ class DeepSeekCLI:
         stream: bool = False,
         multiline: bool = False,
         multiline_submit: str = "empty-line",
+        rich_input: bool = True,
     ) -> None:
         self.api_client = APIClient()
         self.chat_handler = ChatHandler(stream=stream)
         self.file_handler = FileHandler()
-        self.command_handler = CommandHandler(
-            self.api_client, self.chat_handler, self.file_handler
-        )
+        self.command_handler = CommandHandler(self.api_client, self.chat_handler, self.file_handler)
         self.error_handler = ErrorHandler()
         self.multiline = multiline
         self.multiline_submit = multiline_submit
+        self.rich_input = rich_input
+
+        # Build the rich input handler (lazy — initialised on first use)
+        self._rich_handler: Optional[RichInputHandler] = None
 
         # Register cleanup handlers
         atexit.register(self._cleanup)
@@ -140,9 +147,7 @@ class DeepSeekCLI:
             # If files are attached, fold their contents into the user message
             # and clear the attachment list (one-shot, matches DeepSeek app UX).
             if self.file_handler.has_attachments():
-                attached_paths = [
-                    f["path"] for f in self.file_handler.list_attachments()
-                ]
+                attached_paths = [f["path"] for f in self.file_handler.list_attachments()]
                 console.print(
                     f"[cyan]Including {len(attached_paths)} attached file(s) "
                     f"with this message.[/cyan]"
@@ -163,9 +168,7 @@ class DeepSeekCLI:
                 response = self.api_client.create_chat_completion(**kwargs)
                 return self.chat_handler.handle_response(response)
 
-            result = self.error_handler.retry_with_backoff(
-                make_request, self.api_client
-            )
+            result = self.error_handler.retry_with_backoff(make_request, self.api_client)
 
             self.chat_handler.raw_mode = original_raw_mode
             return result
@@ -198,16 +201,23 @@ class DeepSeekCLI:
         try:
             while True:
                 try:
-                    # Prompt user input with multiline support if enabled
-                    if self.multiline:
-                        user_input = multiline_input(
-                            "> You", self.multiline_submit
-                        ).strip()
+                    # Use the rich input handler (with @-mention support) when available
+                    if self.rich_input and RichInputHandler is not None:
+                        if self._rich_handler is None:
+                            self._rich_handler = RichInputHandler(
+                                file_handler=self.file_handler,
+                                multiline=self.multiline,
+                                submit_mode=self.multiline_submit,
+                                mention_callback=lambda p: console.print(
+                                    f"[green]📎 Attached:[/green] {p}"
+                                ),
+                            )
+                        user_input = self._rich_handler.prompt("> You").strip()
+                    elif self.multiline:
+                        user_input = multiline_input("> You", self.multiline_submit).strip()
                     else:
                         # Use plain input() instead of Prompt.ask() to avoid conflicts with readline
-                        console.print(
-                            "[bold bright_magenta]> You[/bold bright_magenta]: ", end=""
-                        )
+                        console.print("[bold bright_magenta]> You[/bold bright_magenta]: ", end="")
                         user_input = input().strip()
 
                     # Handle empty input (just pressing Enter)
@@ -311,7 +321,9 @@ class DeepSeekCLI:
         if style == "simple":
             panel = Panel(
                 Align.center(
-                    "Use natural language to interact with AI.\nType /help for commands, or exit to quit.",
+                    "Use natural language to interact with AI.\n"
+                    "Type /help for commands, or exit to quit.\n"
+                    "[dim]💡 Type @ to mention files from the current project[/dim]",
                     vertical="middle",
                 ),
                 title="💡 DeepSeek CLI",
@@ -400,9 +412,7 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     # Streaming
-    parser.add_argument(
-        "-s", "--stream", action="store_true", help="Enable streaming mode"
-    )
+    parser.add_argument("-s", "--stream", action="store_true", help="Enable streaming mode")
     parser.add_argument(
         "--no-stream",
         dest="stream",
@@ -446,6 +456,13 @@ def parse_arguments() -> argparse.Namespace:
         choices=["shift-enter", "empty-line"],
         default="empty-line",
         help="Multiline submit mode: empty-line (default) or shift-enter (requires terminal support)",
+    )
+    parser.add_argument(
+        "--no-rich-input",
+        action="store_true",
+        default=False,
+        dest="no_rich_input",
+        help="Disable the enhanced input experience (@ file mentions, completion popups) and fall back to standard input",
     )
 
     # Sampling / penalty parameters (mirror REPL /temp, /freq, /pres, /top_p)
@@ -517,9 +534,7 @@ def _read_input(source: str) -> str:
         with open(source, "r", encoding="utf-8") as fh:
             return fh.read()
     except UnicodeDecodeError as exc:
-        console.print(
-            f"[red]Error: '{source}' could not be decoded as UTF-8: {exc}[/red]"
-        )
+        console.print(f"[red]Error: '{source}' could not be decoded as UTF-8: {exc}[/red]")
         sys.exit(1)
     except OSError as exc:
         console.print(f"[red]Error reading '{source}': {exc}[/red]")
@@ -547,6 +562,7 @@ def main() -> None:
         stream=args.stream,
         multiline=args.multiline,
         multiline_submit=args.multiline_submit,
+        rich_input=not args.no_rich_input,
     )
 
     # Apply REPL-equivalent flags (temp, freq, pres, top_p, stop, json, beta, prefix, fim)

@@ -340,7 +340,10 @@ Notes:
   - deepseek-coder is DeepSeek-V2.5 (may redirect to deepseek-chat)
   - Temperature presets:
     coding: 0.0, data: 1.0, chat: 1.3, translation: 1.3, creative: 1.5
-  - Context caching is automatic on the DeepSeek API (no manual toggle required)"""
+  - Context caching is automatic on the DeepSeek API (no manual toggle required)
+  - @ file mentions: Type @ followed by a file path to attach it inline.
+    A completion popup appears as you type (e.g. @src/main.py).
+    Files are auto-attached and included as context with your message."""
 
     def get_about_message(self) -> str:
         """Get about message with API information"""
