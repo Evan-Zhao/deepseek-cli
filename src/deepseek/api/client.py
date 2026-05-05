@@ -11,6 +11,7 @@ from deepseek.utils.exceptions import DeepSeekError
 # Anthropic API compatibility
 ANTHROPIC_BASE_URL = "https://api.deepseek.com/anthropic"
 
+
 class APIClient:
     def __init__(self, use_anthropic: bool = False) -> None:
         self.api_key = self._get_api_key()
@@ -32,10 +33,7 @@ class APIClient:
         """Create OpenAI client with DeepSeek configuration"""
         try:
             base_url = ANTHROPIC_BASE_URL if self.use_anthropic else DEFAULT_BASE_URL
-            return OpenAI(
-                api_key=self.api_key,
-                base_url=base_url
-            )
+            return OpenAI(api_key=self.api_key, base_url=base_url)
         except Exception as e:
             raise DeepSeekError(f"Failed to initialize API client: {str(e)}")
 
@@ -43,7 +41,9 @@ class APIClient:
         """Toggle beta mode and update base URL"""
         self.beta_mode = not self.beta_mode
         if not self.use_anthropic:
-            self.client.base_url = DEFAULT_BETA_URL if self.beta_mode else DEFAULT_BASE_URL
+            self.client.base_url = (
+                DEFAULT_BETA_URL if self.beta_mode else DEFAULT_BASE_URL
+            )
 
     def toggle_anthropic(self) -> None:
         """Toggle Anthropic API compatibility mode"""
@@ -59,10 +59,10 @@ class APIClient:
 
     def create_chat_completion(self, **kwargs: Any) -> Any:
         """Create a chat completion with proper function handling
-        
+
         Args:
             **kwargs: Arguments to pass to the chat completion API
-            
+
         Returns:
             Chat completion response
         """
@@ -70,14 +70,14 @@ class APIClient:
         if "functions" in kwargs:
             functions: List[Dict[str, Any]] = kwargs.pop("functions")
             kwargs["tools"] = [{"type": "function", "function": f} for f in functions]
-        
+
         # Let SDK exceptions propagate directly so callers can inspect
         # status_code, headers, code, etc. (APIError, RateLimitError, …)
         return self.client.chat.completions.create(**kwargs)
 
     def update_api_key(self, new_key: str) -> None:
         """Update API key and recreate client
-        
+
         Args:
             new_key: The new API key to use
         """

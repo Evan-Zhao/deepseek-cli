@@ -41,13 +41,13 @@ class ChatHandler:
         self.raw_mode: bool = False
 
         self.console = Console()
-        
+
         # Initialize persistence manager
         self.persistence = PersistenceManager()
 
         # Check for new version with caching
         self._check_version_cached()
-        
+
         # Load previous history and settings
         self._load_persisted_data()
 
@@ -56,8 +56,12 @@ class ChatHandler:
         try:
             update_available, current, latest = check_version()
             if update_available:
-                self.console.print(f"\n[yellow]New version available: {latest} (current: {current})[/yellow]")
-                self.console.print("[yellow]Update with: pip install --upgrade deepseek-cli[/yellow]\n")
+                self.console.print(
+                    f"\n[yellow]New version available: {latest} (current: {current})[/yellow]"
+                )
+                self.console.print(
+                    "[yellow]Update with: pip install --upgrade deepseek-cli[/yellow]\n"
+                )
         except Exception:
             pass  # Silently fail if version check fails
 
@@ -72,7 +76,9 @@ class ChatHandler:
         """Toggle JSON output mode"""
         self.json_mode = not self.json_mode
         if self.json_mode:
-            self.set_system_message("You are a helpful assistant. Please provide all responses in valid JSON format.")
+            self.set_system_message(
+                "You are a helpful assistant. Please provide all responses in valid JSON format."
+            )
         else:
             self.set_system_message("You are a helpful assistant.")
         # Save settings after change
@@ -91,7 +97,7 @@ class ChatHandler:
             self.save_state()
             return True
         return False
-    
+
     def get_current_provider(self) -> str:
         """Get the provider of the current model"""
         return "deepseek"
@@ -175,7 +181,7 @@ class ChatHandler:
 
     def prepare_chat_request(self) -> Dict[str, Any]:
         """Prepare chat completion request parameters.
-        
+
         Does NOT mutate self.messages — prefix mode injects a read-only view
         into the messages list passed to the API, leaving history intact.
         """
@@ -183,11 +189,9 @@ class ChatHandler:
         # user message is presented as an assistant prefix WITHOUT modifying
         # self.messages so retries and history remain consistent.
         if self.prefix_mode and self.messages and self.messages[-1]["role"] == "user":
-            messages = list(self.messages[:-1]) + [{
-                "role": "assistant",
-                "content": self.messages[-1]["content"],
-                "prefix": True
-            }]
+            messages = list(self.messages[:-1]) + [
+                {"role": "assistant", "content": self.messages[-1]["content"], "prefix": True}
+            ]
         else:
             messages = self.messages
 
@@ -195,17 +199,19 @@ class ChatHandler:
             "model": self.model,
             "messages": messages,
             "stream": self.stream,
-            "max_tokens": self.max_tokens
+            "max_tokens": self.max_tokens,
         }
 
         # Only add these parameters if not using the reasoner model
         if self.model != "deepseek-reasoner":
-            kwargs.update({
-                "temperature": self.temperature,
-                "frequency_penalty": self.frequency_penalty,
-                "presence_penalty": self.presence_penalty,
-                "top_p": self.top_p
-            })
+            kwargs.update(
+                {
+                    "temperature": self.temperature,
+                    "frequency_penalty": self.frequency_penalty,
+                    "presence_penalty": self.presence_penalty,
+                    "top_p": self.top_p,
+                }
+            )
 
             if self.json_mode:
                 kwargs["response_format"] = {"type": "json_object"}
@@ -225,57 +231,59 @@ class ChatHandler:
         """Handle API response and extract content"""
         try:
             if not self.stream:
-                if hasattr(response, 'usage'):
+                if hasattr(response, "usage"):
                     self.display_token_info(response.usage.model_dump())
 
                 # Get the message from the response
                 choice = response.choices[0]
-                if not hasattr(choice, 'message'):
+                if not hasattr(choice, "message"):
                     return None
 
                 message = choice.message
-                content = message.content if hasattr(message, 'content') else None
-                
+                content = message.content if hasattr(message, "content") else None
+
                 # Handle reasoning content for deepseek-reasoner model
-                reasoning_content = None
-                if hasattr(message, 'reasoning_content') and message.reasoning_content:
+                if hasattr(message, "reasoning_content") and message.reasoning_content:
                     reasoning_content = message.reasoning_content
                     if not self.raw_mode:
-                        self.console.print(Panel(
-                            Markdown(f"**Reasoning Process:**\n\n{reasoning_content}"),
-                            border_style="yellow",
-                            box=box.ROUNDED,
-                            padding=(0, 1),
-                            title="[bold yellow]Chain of Thought[/bold yellow]"
-                        ))
+                        self.console.print(
+                            Panel(
+                                Markdown(f"**Reasoning Process:**\n\n{reasoning_content}"),
+                                border_style="yellow",
+                                box=box.ROUNDED,
+                                padding=(0, 1),
+                                title="[bold yellow]Chain of Thought[/bold yellow]",
+                            )
+                        )
 
                 # Handle tool calls (function calling)
                 if hasattr(message, "tool_calls") and message.tool_calls:
                     tool_calls = []
                     for tool_call in message.tool_calls:
                         if tool_call.type == "function":
-                            tool_calls.append({
-                                "id": tool_call.id,
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments
-                            })
+                            tool_calls.append(
+                                {
+                                    "id": tool_call.id,
+                                    "name": tool_call.function.name,
+                                    "arguments": tool_call.function.arguments,
+                                }
+                            )
                     return json.dumps(tool_calls, indent=2)
 
                 # Handle regular message content
                 if content is not None:
-                    self.messages.append({
-                        "role": "assistant",
-                        "content": content
-                    })
-                    self.console.print(Panel(
-                                Markdown(content),
-                                border_style="bright_blue",
-                                box=box.ROUNDED,
-                                padding=(0, 1),
-                                title="[bold green]AI[/bold green]"
-                            ))
+                    self.messages.append({"role": "assistant", "content": content})
+                    self.console.print(
+                        Panel(
+                            Markdown(content),
+                            border_style="bright_blue",
+                            box=box.ROUNDED,
+                            padding=(0, 1),
+                            title="[bold green]AI[/bold green]",
+                        )
+                    )
                     return content
-            
+
                 return None
             else:
                 return self.stream_response(response)
@@ -291,11 +299,14 @@ class ChatHandler:
         try:
             with Live("", console=self.console, refresh_per_second=8) as live:
                 for chunk in response:
-                    if hasattr(chunk.choices[0], 'delta'):
+                    if hasattr(chunk.choices[0], "delta"):
                         delta = chunk.choices[0].delta
-                        
+
                         # Handle reasoning content for deepseek-reasoner
-                        if hasattr(delta, 'reasoning_content') and delta.reasoning_content is not None:
+                        if (
+                            hasattr(delta, "reasoning_content")
+                            and delta.reasoning_content is not None
+                        ):
                             reasoning_content += delta.reasoning_content
                             if not self.raw_mode:
                                 reasoning_bubble = Panel(
@@ -303,25 +314,27 @@ class ChatHandler:
                                     border_style="yellow",
                                     box=box.ROUNDED,
                                     padding=(0, 1),
-                                    title="[bold yellow]Chain of Thought[/bold yellow]"
+                                    title="[bold yellow]Chain of Thought[/bold yellow]",
                                 )
                                 live.update(reasoning_bubble)
-                        
+
                         # Handle regular content
-                        if hasattr(delta, 'content') and delta.content is not None:
+                        if hasattr(delta, "content") and delta.content is not None:
                             content: str = delta.content
                             full_response += content
                             chunk_count += 1
 
                             # Update display every 3 chunks or if content ends with punctuation
                             # This reduces object creation while maintaining responsiveness
-                            if chunk_count % 3 == 0 or content.rstrip().endswith(('.', '!', '?', '\n')):
+                            if chunk_count % 3 == 0 or content.rstrip().endswith(
+                                (".", "!", "?", "\n")
+                            ):
                                 bubble = Panel(
                                     Markdown(full_response),
                                     border_style="bright_blue",
                                     box=box.ROUNDED,
                                     padding=(0, 1),
-                                    title="[bold green]AI[/bold green]"
+                                    title="[bold green]AI[/bold green]",
                                 )
                                 live.update(bubble)
 
@@ -332,15 +345,12 @@ class ChatHandler:
                         border_style="bright_blue",
                         box=box.ROUNDED,
                         padding=(0, 1),
-                        title="[bold green]AI[/bold green]"
+                        title="[bold green]AI[/bold green]",
                     )
                     live.update(final_bubble)
 
             if full_response:
-                self.messages.append({
-                    "role": "assistant",
-                    "content": full_response
-                })
+                self.messages.append({"role": "assistant", "content": full_response})
             return full_response
         except Exception as e:
             self.console.print(f"\n[red]Error in stream response: {str(e)}[/red]")
@@ -349,13 +359,13 @@ class ChatHandler:
     def display_token_info(self, usage: Dict[str, int]) -> None:
         """Display token usage information"""
         if usage:
-            input_tokens = usage.get('prompt_tokens', 0)
-            output_tokens = usage.get('completion_tokens', 0)
-            total_tokens = usage.get('total_tokens', 0)
+            input_tokens = usage.get("prompt_tokens", 0)
+            output_tokens = usage.get("completion_tokens", 0)
+            total_tokens = usage.get("total_tokens", 0)
 
             # Estimate character counts (rough approximation)
-            eng_chars = int(total_tokens * 0.75)   # 1 token ≈ 0.75 English chars
-            cn_chars = int(total_tokens * 1.67)    # 1 token ≈ 1.67 Chinese chars
+            eng_chars = int(total_tokens * 0.75)  # 1 token ≈ 0.75 English chars
+            cn_chars = int(total_tokens * 1.67)  # 1 token ≈ 1.67 Chinese chars
 
             # Compose text
             text = (
@@ -369,7 +379,9 @@ class ChatHandler:
             )
 
             # Print in a nice box
-            self.console.print(Panel(text, title="Token Info", border_style="cyan", box=box.ROUNDED))
+            self.console.print(
+                Panel(text, title="Token Info", border_style="cyan", box=box.ROUNDED)
+            )
 
     def add_message(self, role: str, content: str) -> None:
         """Add a message to the conversation history with limit"""
@@ -377,58 +389,60 @@ class ChatHandler:
         if len(self.messages) > MAX_HISTORY_LENGTH:
             # Remove oldest messages but keep system message
             if self.messages[0]["role"] == "system":
-                self.messages = [self.messages[0]] + self.messages[-(MAX_HISTORY_LENGTH-1):]
+                self.messages = [self.messages[0]] + self.messages[-(MAX_HISTORY_LENGTH - 1) :]
             else:
                 self.messages = self.messages[-MAX_HISTORY_LENGTH:]
-        
+
         # Auto-save after adding messages
         self.save_state()
-    
+
     def _load_persisted_data(self) -> None:
         """Load persisted history and settings"""
         # Load history
         loaded_messages = self.persistence.load_history()
         if loaded_messages:
             self.messages = loaded_messages
-        
+
         # Load settings
         loaded_settings = self.persistence.load_settings()
         if loaded_settings:
             self._apply_loaded_settings(loaded_settings)
-    
+
     def _apply_loaded_settings(self, settings: Dict[str, Any]) -> None:
         """Apply loaded settings to current state"""
         if "model" in settings and settings["model"] in MODEL_CONFIGS:
             self.model = settings["model"]
-            self.max_tokens = MODEL_CONFIGS[self.model].get("default_max_tokens", DEFAULT_MAX_TOKENS)
-        
+            self.max_tokens = MODEL_CONFIGS[self.model].get(
+                "default_max_tokens", DEFAULT_MAX_TOKENS
+            )
+
         if "temperature" in settings:
             self.temperature = settings["temperature"]
-        
+
         if "frequency_penalty" in settings:
             self.frequency_penalty = settings["frequency_penalty"]
-        
+
         if "presence_penalty" in settings:
             self.presence_penalty = settings["presence_penalty"]
-        
+
         if "top_p" in settings:
             self.top_p = settings["top_p"]
-        
+
         if "json_mode" in settings:
             self.json_mode = settings["json_mode"]
-        
+
         if "prefix_mode" in settings:
             self.prefix_mode = settings["prefix_mode"]
-        
+
         if "fim_mode" in settings:
             self.fim_mode = settings["fim_mode"]
-        
+
         if "stop_sequences" in settings:
             self.stop_sequences = settings["stop_sequences"]
-        
+
         if "functions" in settings:
             self.functions = settings["functions"]
-    
+
     def get_current_settings(self) -> Dict[str, Any]:
         """Get current settings as a dictionary"""
         return {
@@ -441,15 +455,15 @@ class ChatHandler:
             "prefix_mode": self.prefix_mode,
             "fim_mode": self.fim_mode,
             "stop_sequences": self.stop_sequences,
-            "functions": self.functions
+            "functions": self.functions,
         }
-    
+
     def save_state(self) -> bool:
         """Save current history and settings to disk"""
         history_success = self.persistence.save_history(self.messages)
         settings_success = self.persistence.save_settings(self.get_current_settings())
         return history_success and settings_success
-    
+
     def clear_persisted_data(self) -> bool:
         """Clear all persisted data from disk"""
         history_success = self.persistence.clear_history()

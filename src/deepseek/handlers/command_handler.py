@@ -24,10 +24,10 @@ class CommandHandler:
 
     def handle_command(self, command: str) -> Tuple[Optional[bool], Optional[str]]:
         """Handle CLI commands and return (should_continue, message)
-        
+
         Args:
             command: The command string to process
-            
+
         Returns:
             Tuple[Optional[bool], Optional[str]]: (should_continue, message)
                 - (False, message): Exit the program
@@ -40,98 +40,106 @@ class CommandHandler:
 
         command_lower = command_raw.lower()
 
-        if command_lower in ['quit', 'exit', '/quit', '/exit']:
+        if command_lower in ["quit", "exit", "/quit", "/exit"]:
             return False, "Goodbye!"
 
-        elif command_lower == '/multiline':
+        elif command_lower == "/multiline":
             # This would need access to the CLI instance, so for now we'll provide guidance
             return True, "Multiline mode can be enabled via --multiline flag when starting the CLI"
 
-        elif command_lower == '/raw':
+        elif command_lower == "/raw":
             self.chat_handler.raw_mode = not self.chat_handler.raw_mode
             return True, f"Raw mode {'enabled' if self.chat_handler.raw_mode else 'disabled'}"
 
-        elif command_lower == '/json':
+        elif command_lower == "/json":
             self.chat_handler.toggle_json_mode()
             return True, f"JSON mode {'enabled' if self.chat_handler.json_mode else 'disabled'}"
 
-        elif command_lower == '/stream':
+        elif command_lower == "/stream":
             self.chat_handler.toggle_stream()
             return True, f"Streaming {'enabled' if self.chat_handler.stream else 'disabled'}"
 
-        elif command_lower == '/beta':
+        elif command_lower == "/beta":
             self.api_client.toggle_beta()
-            return True, f"Beta mode {'enabled' if self.api_client.beta_mode else 'disabled'} (Note: Most features are now stable and don't require beta mode)"
+            return (
+                True,
+                f"Beta mode {'enabled' if self.api_client.beta_mode else 'disabled'} (Note: Most features are now stable and don't require beta mode)",
+            )
 
-        elif command_lower == '/prefix':
+        elif command_lower == "/prefix":
             self.chat_handler.prefix_mode = not self.chat_handler.prefix_mode
             self.chat_handler.save_state()
             return True, f"Prefix mode {'enabled' if self.chat_handler.prefix_mode else 'disabled'}"
 
-        elif command_lower == '/models':
+        elif command_lower == "/models":
             try:
                 response = self.api_client.list_models()
                 if response.data:
-                    models = "\n".join(f"  - {model.id} (owned by {model.owned_by})" for model in response.data)
+                    models = "\n".join(
+                        f"  - {model.id} (owned by {model.owned_by})" for model in response.data
+                    )
                     return True, f"Available Models:\n{models}"
                 return True, "No models available"
             except Exception as e:
                 return True, f"Error fetching models: {str(e)}"
 
-        elif command_lower.startswith('/model '):
-            parts = command_raw.split(' ', 1)
-            model = parts[1].strip() if len(parts) > 1 else ''
+        elif command_lower.startswith("/model "):
+            parts = command_raw.split(" ", 1)
+            model = parts[1].strip() if len(parts) > 1 else ""
             if self.chat_handler.switch_model(model):
-                return True, f"Switched to {model} model\nMax tokens set to {self.chat_handler.max_tokens}"
+                return (
+                    True,
+                    f"Switched to {model} model\nMax tokens set to {self.chat_handler.max_tokens}",
+                )
             return True, "Invalid model"
 
-        elif command_lower.startswith('/temp '):
-            parts = command_raw.split(' ', 1)
-            temp_str = parts[1].strip() if len(parts) > 1 else ''
+        elif command_lower.startswith("/temp "):
+            parts = command_raw.split(" ", 1)
+            temp_str = parts[1].strip() if len(parts) > 1 else ""
             if self.chat_handler.set_temperature(temp_str):
                 return True, f"Temperature set to {self.chat_handler.temperature}"
             return True, "Invalid temperature value or preset"
 
-        elif command_lower.startswith('/freq '):
+        elif command_lower.startswith("/freq "):
             try:
-                penalty = float(command_raw.split(' ', 1)[1])
+                penalty = float(command_raw.split(" ", 1)[1])
                 if self.chat_handler.set_frequency_penalty(penalty):
                     return True, f"Frequency penalty set to {penalty}"
                 return True, "Frequency penalty must be between -2.0 and 2.0"
             except (ValueError, IndexError):
                 return True, "Invalid frequency penalty value"
 
-        elif command_lower.startswith('/pres '):
+        elif command_lower.startswith("/pres "):
             try:
-                penalty = float(command_raw.split(' ', 1)[1])
+                penalty = float(command_raw.split(" ", 1)[1])
                 if self.chat_handler.set_presence_penalty(penalty):
                     return True, f"Presence penalty set to {penalty}"
                 return True, "Presence penalty must be between -2.0 and 2.0"
             except (ValueError, IndexError):
                 return True, "Invalid presence penalty value"
 
-        elif command_lower.startswith('/top_p '):
+        elif command_lower.startswith("/top_p "):
             try:
-                top_p = float(command_raw.split(' ', 1)[1])
+                top_p = float(command_raw.split(" ", 1)[1])
                 if self.chat_handler.set_top_p(top_p):
                     return True, f"Top_p set to {top_p}"
                 return True, "Top_p must be between 0.0 and 1.0"
             except (ValueError, IndexError):
                 return True, "Invalid top_p value"
 
-        elif command_lower.startswith('/stop '):
+        elif command_lower.startswith("/stop "):
             sequence = command_raw[6:]
             if self.chat_handler.add_stop_sequence(sequence):
                 self.chat_handler.save_state()
                 return True, f"Stop sequence added: {sequence}"
             return True, "Maximum number of stop sequences reached"
 
-        elif command_lower == '/clearstop':
+        elif command_lower == "/clearstop":
             self.chat_handler.clear_stop_sequences()
             self.chat_handler.save_state()
             return True, "All stop sequences cleared"
 
-        elif command_lower.startswith('/function '):
+        elif command_lower.startswith("/function "):
             try:
                 function = json.loads(command_raw[10:])
                 if self.chat_handler.add_function(function):
@@ -141,30 +149,32 @@ class CommandHandler:
             except json.JSONDecodeError:
                 return True, "Invalid JSON format for function definition"
 
-        elif command_lower == '/clearfuncs':
+        elif command_lower == "/clearfuncs":
             self.chat_handler.clear_functions()
             self.chat_handler.save_state()
             return True, "All functions cleared"
 
-        elif command_lower.startswith('/system '):
+        elif command_lower.startswith("/system "):
             message = command_raw[8:].strip()
             if message:
                 self.chat_handler.set_system_message(message)
                 return True, f"System message set to: {message}"
             return True, "Usage: /system <message>"
 
-        elif command_lower == '/system':
-            current = (self.chat_handler.messages[0]["content"]
-                       if self.chat_handler.messages and self.chat_handler.messages[0]["role"] == "system"
-                       else "(none)")
+        elif command_lower == "/system":
+            current = (
+                self.chat_handler.messages[0]["content"]
+                if self.chat_handler.messages and self.chat_handler.messages[0]["role"] == "system"
+                else "(none)"
+            )
             return True, f"Current system message: {current}"
 
-        elif command_lower == '/clear':
+        elif command_lower == "/clear":
             self.chat_handler.clear_history()
             self.chat_handler.save_state()
             return True, "Conversation history cleared"
 
-        elif command_lower == '/history':
+        elif command_lower == "/history":
             if not self.chat_handler.messages:
                 return True, "No conversation history"
             lines = []
@@ -176,24 +186,33 @@ class CommandHandler:
                 lines.append(f"  [{i}] {role}: {preview}")
             return True, "Conversation history:\n" + "\n".join(lines)
 
-        elif command_lower == '/fim':
+        elif command_lower == "/fim":
             self.chat_handler.fim_mode = not self.chat_handler.fim_mode
             self.chat_handler.save_state()
-            return True, f"FIM (Fill-in-the-Middle) mode {'enabled' if self.chat_handler.fim_mode else 'disabled'}"
+            return (
+                True,
+                f"FIM (Fill-in-the-Middle) mode {'enabled' if self.chat_handler.fim_mode else 'disabled'}",
+            )
 
-        elif command_lower == '/cache':
-            return True, "Context caching is handled automatically by the DeepSeek API and requires no manual toggling."
+        elif command_lower == "/cache":
+            return (
+                True,
+                "Context caching is handled automatically by the DeepSeek API and requires no manual toggling.",
+            )
 
-        elif command_lower == '/balance':
+        elif command_lower == "/balance":
             return True, (
                 "Account balance check is not available via this CLI.\n"
                 "Please visit https://platform.deepseek.com to view your balance."
             )
 
-        elif command_lower == '/files':
+        elif command_lower == "/files":
             files = self.file_handler.list_attachments()
             if not files:
-                return True, "No files attached. Use /file <path>, /file <glob>, or /pick to attach."
+                return (
+                    True,
+                    "No files attached. Use /file <path>, /file <glob>, or /pick to attach.",
+                )
             lines = ["Attached files (will be sent with next message):"]
             for i, f in enumerate(files):
                 size = int(f.get("size", 0))
@@ -202,7 +221,7 @@ class CommandHandler:
             lines.append(f"Total: {len(files)} file(s), {total} bytes")
             return True, "\n".join(lines)
 
-        elif command_lower == '/file' or command_lower.startswith('/file '):
+        elif command_lower == "/file" or command_lower.startswith("/file "):
             arg = command_raw[5:].strip() if len(command_raw) > 5 else ""
             if not arg:
                 return True, (
@@ -219,13 +238,13 @@ class CommandHandler:
                 tokens = arg.split()
             return True, self._attach_and_summarize(tokens)
 
-        elif command_lower == '/pick':
+        elif command_lower == "/pick":
             tokens = pick_files()
             if not tokens:
                 return True, "Picker cancelled. No files attached."
             return True, self._attach_and_summarize(tokens)
 
-        elif command_lower == '/dropfile' or command_lower.startswith('/dropfile '):
+        elif command_lower == "/dropfile" or command_lower.startswith("/dropfile "):
             arg = command_raw[9:].strip() if len(command_raw) > 9 else ""
             if not arg:
                 return True, "Usage: /dropfile <index-or-path>  (see /files for indices)"
@@ -233,15 +252,15 @@ class CommandHandler:
                 return True, f"Removed attachment: {arg}"
             return True, f"No attachment matching: {arg}"
 
-        elif command_lower == '/clearfiles':
+        elif command_lower == "/clearfiles":
             count = len(self.file_handler.list_attachments())
             self.file_handler.clear()
             return True, f"Cleared {count} attached file(s)"
 
-        elif command_lower == '/help':
+        elif command_lower == "/help":
             return True, self.get_help_message()
 
-        elif command_lower == '/about':
+        elif command_lower == "/about":
             return True, self.get_about_message()
 
         return None, None
@@ -273,8 +292,10 @@ class CommandHandler:
         total = self.file_handler.total_size()
         count = len(self.file_handler.list_attachments())
         lines.append("")
-        lines.append(f"Currently attached: {count} file(s), {total} bytes "
-                     f"(use /files to list, /clearfiles to clear).")
+        lines.append(
+            f"Currently attached: {count} file(s), {total} bytes "
+            f"(use /files to list, /clearfiles to clear)."
+        )
         return "\n".join(lines)
 
     def get_help_message(self) -> str:

@@ -1,9 +1,5 @@
 """DeepSeek CLI package"""
 
-from . import api
-from . import cli
-from . import config
-from . import handlers
-from . import utils
+from . import api, cli, config, handlers, utils
 
 __version__ = "0.7.0"

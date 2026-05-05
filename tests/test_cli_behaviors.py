@@ -156,7 +156,9 @@ class TestMainQueryResolution:
         run_called = []
 
         mock_cli = MagicMock()
-        mock_cli.run.side_effect = lambda system="You are a helpful assistant.": run_called.append(True)
+        mock_cli.run.side_effect = lambda system="You are a helpful assistant.": run_called.append(
+            True
+        )
 
         with patch.object(_cli_mod, "parse_arguments", return_value=args):
             with patch.object(_cli_mod, "DeepSeekCLI", return_value=mock_cli):
@@ -210,7 +212,9 @@ class TestResolveDirsLegacy:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             _resolve_dirs()
-        messages = [str(warning.message) for warning in w if issubclass(warning.category, UserWarning)]
+        messages = [
+            str(warning.message) for warning in w if issubclass(warning.category, UserWarning)
+        ]
         assert any(".deepseek-cli" in msg for msg in messages)
 
     def test_no_legacy_uses_xdg(self, tmp_path, monkeypatch):

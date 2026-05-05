@@ -32,20 +32,61 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Limits — generous but bounded so a stray ``**/*`` doesn't blow up context.
 # ---------------------------------------------------------------------------
-MAX_FILE_SIZE = 1 * 1024 * 1024        # 1 MiB per file
-MAX_TOTAL_SIZE = 4 * 1024 * 1024       # 4 MiB cumulative
+MAX_FILE_SIZE = 1 * 1024 * 1024  # 1 MiB per file
+MAX_TOTAL_SIZE = 4 * 1024 * 1024  # 4 MiB cumulative
 MAX_FILES = 20
 
 # Extensions we refuse to read as text. UTF-8 decoding would catch most of
 # these too, but rejecting up-front gives a clearer error.
 BINARY_EXTENSIONS = {
-    ".exe", ".dll", ".so", ".dylib", ".bin", ".obj", ".o", ".a", ".lib",
-    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".tif", ".tiff", ".webp",
-    ".mp3", ".mp4", ".avi", ".mov", ".wav", ".flac", ".ogg", ".m4a",
-    ".zip", ".tar", ".gz", ".rar", ".7z", ".bz2", ".xz",
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-    ".pyc", ".pyo", ".class", ".jar",
-    ".woff", ".woff2", ".ttf", ".otf",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".bin",
+    ".obj",
+    ".o",
+    ".a",
+    ".lib",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".ico",
+    ".tif",
+    ".tiff",
+    ".webp",
+    ".mp3",
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".wav",
+    ".flac",
+    ".ogg",
+    ".m4a",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".rar",
+    ".7z",
+    ".bz2",
+    ".xz",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".pyc",
+    ".pyo",
+    ".class",
+    ".jar",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".otf",
 }
 
 
@@ -140,9 +181,7 @@ class FileHandler:
                 continue
 
             if size > MAX_FILE_SIZE:
-                errors.append(
-                    f"File too large ({size} bytes > {MAX_FILE_SIZE}): {abs_path}"
-                )
+                errors.append(f"File too large ({size} bytes > {MAX_FILE_SIZE}): {abs_path}")
                 continue
 
             if self.total_size() + size > MAX_TOTAL_SIZE:
@@ -162,9 +201,7 @@ class FileHandler:
                 errors.append(f"Cannot read {abs_path}: {exc}")
                 continue
 
-            self.attached_files.append(
-                {"path": abs_path, "content": content, "size": size}
-            )
+            self.attached_files.append({"path": abs_path, "content": content, "size": size})
             attached.append(abs_path)
 
         return attached, errors
@@ -220,9 +257,7 @@ def pick_files() -> List[str]:
     completer = PathCompleter(expanduser=True)
     console.print("[cyan]File picker[/cyan]")
     console.print("[dim]  - Tab completes paths; Enter submits.[/dim]")
-    console.print(
-        "[dim]  - Multiple paths can be space-separated; quote paths with spaces.[/dim]"
-    )
+    console.print("[dim]  - Multiple paths can be space-separated; quote paths with spaces.[/dim]")
     console.print("[dim]  - Globs work: src/*.py, **/*.md (recursive).[/dim]")
     console.print("[dim]  - Empty line / Ctrl+C cancels.[/dim]")
 

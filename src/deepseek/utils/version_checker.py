@@ -1,8 +1,10 @@
 """Version checker for DeepSeek CLI"""
 
-import requests
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from typing import Optional, Tuple
+
+import requests
+
 
 def get_current_version() -> str:
     """Get the current installed version of deepseek-cli"""
@@ -11,22 +13,24 @@ def get_current_version() -> str:
     except PackageNotFoundError:
         return "0.0.0"
 
+
 def get_latest_version() -> Optional[str]:
     """Get the latest version from PyPI with better error handling"""
     try:
         response = requests.get(
             "https://pypi.org/pypi/deepseek-cli/json",
             timeout=2,
-            headers={'User-Agent': 'deepseek-cli-version-check'}
+            headers={"User-Agent": "deepseek-cli-version-check"},
         )
         response.raise_for_status()
         return response.json()["info"]["version"]
     except requests.RequestException:
         return None
 
+
 def check_version() -> Tuple[bool, str, str]:
     """Check if a new version is available
-    
+
     Returns:
         Tuple[bool, str, str]: (update_available, current_version, latest_version)
     """

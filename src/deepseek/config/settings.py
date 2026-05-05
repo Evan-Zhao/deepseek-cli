@@ -3,7 +3,9 @@
 # API Information
 API_CONTACT = "api-service@deepseek.com"
 API_LICENSE = "MIT"
-API_TERMS = "https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%20Service.html"
+API_TERMS = (
+    "https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%20Service.html"
+)
 API_AUTH_TYPE = "Bearer"
 API_DOCS = "https://api-docs.deepseek.com/api/create-chat-completion"
 API_BALANCE_ENDPOINT = "https://api-docs.deepseek.com/api/get-user-balance"
@@ -18,25 +20,25 @@ FEATURE_CONFIGS = {
     "prefix_completion": {
         "requires_beta": False,
         "description": "Complete assistant messages from a given prefix",
-        "status": "stable"
+        "status": "stable",
     },
     "fim_completion": {
         "requires_beta": False,
         "max_tokens": 8192,
         "description": "Fill in the middle completion for content/code",
-        "status": "stable"
+        "status": "stable",
     },
     "json_mode": {
         "requires_json_word": True,
-        "description": "Ensure model outputs valid JSON strings"
+        "description": "Ensure model outputs valid JSON strings",
     },
     "context_cache": {
         "enabled_by_default": True,
         "min_cache_tokens": 64,
         "cache_hit_price_per_million": 0.014,  # $0.014 per million tokens
         "cache_miss_price_per_million": 0.14,  # $0.14 per million tokens
-        "description": "Automatic context caching on disk for better performance and cost savings"
-    }
+        "description": "Automatic context caching on disk for better performance and cost savings",
+    },
 }
 
 # Model configurations
@@ -53,7 +55,7 @@ MODEL_CONFIGS = {
         "supports_function_calling": True,
         "supports_prefix_completion": True,
         "supports_fim": True,
-        "updated": "December 2025"
+        "updated": "December 2025",
     },
     "deepseek-coder": {
         "name": "deepseek-coder",
@@ -66,7 +68,7 @@ MODEL_CONFIGS = {
         "supports_function_calling": True,
         "supports_prefix_completion": True,
         "supports_fim": True,
-        "note": "This model was merged into DeepSeek-V2.5 and may redirect to deepseek-chat"
+        "note": "This model was merged into DeepSeek-V2.5 and may redirect to deepseek-chat",
     },
     "deepseek-reasoner": {
         "name": "deepseek-reasoner",
@@ -81,8 +83,8 @@ MODEL_CONFIGS = {
         "supports_prefix_completion": True,
         "supports_fim": False,
         "has_reasoning_content": True,  # Special field for reasoning output
-        "updated": "December 2025"
-    }
+        "updated": "December 2025",
+    },
 }
 
 # Temperature presets
@@ -91,7 +93,7 @@ TEMPERATURE_PRESETS = {
     "data": 1.0,
     "chat": 1.3,
     "translation": 1.3,
-    "creative": 1.5
+    "creative": 1.5,
 }
 
 # Default settings

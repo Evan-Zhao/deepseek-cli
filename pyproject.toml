@@ -50,3 +50,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.json"]
+
+[tool.ruff]
+line-length = 100

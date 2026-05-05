@@ -2,9 +2,9 @@
 
 import json
 import os
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 def _xdg_config_home() -> Path:
@@ -39,9 +39,9 @@ def _resolve_dirs() -> tuple:
         # Path exists but is not a directory (e.g. a plain file); using it
         # would cause mkdir to fail at startup, so fall back to XDG paths.
         import warnings
+
         warnings.warn(
-            f"{legacy} exists but is not a directory; "
-            "falling back to XDG Base Directory paths.",
+            f"{legacy} exists but is not a directory; falling back to XDG Base Directory paths.",
             UserWarning,
             stacklevel=2,
         )
