@@ -45,7 +45,7 @@ class DeepSeekCLI:
         *,
         stream: bool = True,
         input_mode: InputMode = InputMode.RICH,
-        multiline_submit: str = "empty-line",
+        multiline_submit: str = "shift-enter",
     ) -> None:
         self.api_client = APIClient()
         self.chat_handler = ChatHandler(stream=stream)
@@ -130,11 +130,11 @@ class DeepSeekCLI:
         if self.input_mode != InputMode.SINGLE:
             if self.multiline_submit == "shift-enter":
                 console.print(
-                    "[cyan]Multiline mode enabled: Enter for newlines, Shift+Enter or Ctrl+D to submit[/cyan]\n"
+                    "[cyan]Multiline mode enabled: Enter for newlines, Shift+Enter to submit[/cyan]\n"
                 )
             else:
                 console.print(
-                    "[cyan]Multiline mode enabled: Enter for newlines, empty line or Ctrl+D to submit[/cyan]\n"
+                    "[cyan]Multiline mode enabled: Enter for newlines, empty line to submit[/cyan]\n"
                 )
 
         try:
@@ -395,8 +395,8 @@ def parse_arguments() -> argparse.Namespace:
         "--multiline-submit",
         type=str,
         choices=["shift-enter", "empty-line"],
-        default="empty-line",
-        help="Multiline submit mode: empty-line (default) or shift-enter (requires terminal support)",
+        default="shift-enter",
+        help="Multiline submit mode: shift-enter (default) or empty-line",
     )
 
     # Sampling / penalty parameters (mirror REPL /temp, /freq, /pres, /top_p)

@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 from typing import Callable, List, Optional
 
+import prompt_toolkit.input.ansi_escape_sequences as _ptk_ansi
+import prompt_toolkit.key_binding.key_bindings as _ptk_kb
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import (
     CompleteEvent,
@@ -25,6 +27,42 @@ from prompt_toolkit.styles import Style
 from rich.console import Console
 
 from deepseek.handlers.file_handler import FileHandler
+
+# ---------------------------------------------------------------------------
+# Monkey-patch prompt_toolkit to support Shift+Enter as a distinct key
+# ---------------------------------------------------------------------------
+# prompt_toolkit's Keys enum has no ShiftEnter member, so ``_parse_key``
+# rejects "s-enter" and the vt100 parser remaps the CSI u escape sequence
+# ``\x1b[27;2;13~`` to plain ``Keys.ControlM``.
+#
+# The upstream PR https://github.com/prompt-toolkit/python-prompt-toolkit/pull/2040
+# adds ``Keys.ShiftEnter`` and corrects the ANSI mapping.  Until that PR is
+# merged and released we apply the same two changes at runtime.
+
+# 1. Teach _parse_key to accept known extended key names.
+_orig_parse_key = _ptk_kb._parse_key
+_EXTENDED_KEYS = {"s-enter", "c-enter", "c-s-enter"}
+
+
+def _patched_parse_key(key):
+    if key in _EXTENDED_KEYS:
+        return key
+    return _orig_parse_key(key)
+
+
+_ptk_kb._parse_key = _patched_parse_key  # type: ignore
+
+# 2. Remap CSI u sequences for modified Enter from plain Enter to the
+#    correct key names so the vt100 parser creates distinguishable
+#    KeyPress events.
+_ptk_ansi.ANSI_SEQUENCES.update(  # type: ignore
+    {
+        "\x1b[27;2;13~": "s-enter",  # Shift + Enter
+        "\x1b[27;5;13~": "c-enter",  # Ctrl + Enter
+        "\x1b[27;6;13~": "c-s-enter",  # Ctrl + Shift + Enter
+    }
+)
+
 
 console = Console()
 
@@ -190,7 +228,7 @@ class RichInputHandler:
         self,
         file_handler: Optional[FileHandler] = None,
         multiline: bool = False,
-        submit_mode: str = "empty-line",
+        submit_mode: str = "shift-enter",
         mention_callback: Optional[Callable[[str], None]] = None,
     ) -> None:
         """
@@ -231,8 +269,9 @@ class RichInputHandler:
         console.print(f"[bold magenta]{prompt_text}[/bold magenta]: ", end="")
 
         try:
-            text = str(self._session.prompt(""))
-        except (KeyboardInterrupt, EOFError):
+            result = self._session.prompt("")
+            text = str(result)
+        except KeyboardInterrupt:
             console.print()  # ensure we move to a fresh line
             return ""
 
@@ -278,11 +317,6 @@ class RichInputHandler:
                     buf.validate_and_handle()
                 else:
                     buf.insert_text("\n")
-
-        # Ctrl+D always submits
-        @bindings.add("c-d")
-        def _ctrl_d(event: KeyPressEvent):
-            event.current_buffer.validate_and_handle()
 
         # Escape key to cancel completions
         @bindings.add("escape")
@@ -387,7 +421,7 @@ def rich_input(
     prompt_text: str = "> You",
     file_handler: Optional[FileHandler] = None,
     multiline: bool = False,
-    submit_mode: str = "empty-line",
+    submit_mode: str = "shift-enter",
 ) -> str:
     """One-shot rich input with ``@`` file mentions.
 

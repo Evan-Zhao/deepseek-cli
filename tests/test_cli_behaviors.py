@@ -85,7 +85,7 @@ def _make_args(**kwargs):
         system="You are a helpful assistant.",
         no_stream=False,
         input_mode="rich",
-        multiline_submit="empty-line",
+        multiline_submit="shift-enter",
         json=False,
         beta=False,
         prefix=False,
@@ -261,7 +261,7 @@ def _make_cli_instance():
     cli = _cli_mod.DeepSeekCLI.__new__(_cli_mod.DeepSeekCLI)
     cli.input_mode = _cli_mod.InputMode.SINGLE
     cli._rich_handler = None
-    cli.multiline_submit = "empty-line"
+    cli.multiline_submit = "shift-enter"
     cli.chat_handler = MagicMock()
     cli.command_handler = MagicMock()
     cli.command_handler.handle_command.return_value = (None, None)
