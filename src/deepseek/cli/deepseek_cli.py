@@ -19,7 +19,7 @@ from deepseek.handlers.chat_handler import ChatHandler
 from deepseek.handlers.command_handler import CommandHandler
 from deepseek.handlers.error_handler import ErrorHandler
 from deepseek.handlers.file_handler import FileHandler
-from deepseek.utils.rich_input import RichInputHandler, _is_command
+from deepseek.utils.rich_input import RichInputHandler
 
 
 class InputMode(Enum):
@@ -30,97 +30,13 @@ class InputMode(Enum):
         completions).  Always supports multi-line editing.
     ``SINGLE``
         Plain ``input()`` — single-line, no completions, no history.
-    ``MULTILINE``
-        Legacy ``multiline_input()`` — ``prompt_toolkit`` without
-        ``@``-mentions.
     """
 
     RICH = "rich"
     SINGLE = "single"
-    MULTILINE = "multiline"
 
 
 console = Console()
-
-try:
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.key_binding import KeyBindings
-except ImportError:
-    PromptSession = None
-    KeyBindings = None
-
-try:
-    import readline  # noqa
-except ImportError:
-    pass
-
-
-def multiline_input(prompt: str, submit_mode: str = "shift-enter") -> str:
-    """Get multiline input with configurable submit behavior.
-
-    submit_mode:
-      - shift-enter: Enter inserts newline, Shift+Enter submits.
-      - empty-line: Enter inserts newline, a blank line submits.
-
-    Note: This legacy function is kept for backward compatibility.
-    The new ``RichInputHandler`` (used by default) provides the same
-    functionality plus ``@`` file mention completions.
-    """
-    if PromptSession and KeyBindings:
-        key_bindings = KeyBindings()
-
-        @key_bindings.add("enter")
-        def _(event):
-            buf = event.current_buffer
-            text = buf.document.text
-            if _is_command(text) or (
-                submit_mode == "empty-line" and buf.document.current_line.strip() == ""
-            ):
-                buf.validate_and_handle()
-            else:
-                buf.insert_text("\n")
-
-        @key_bindings.add("c-d")
-        def _(event):
-            event.current_buffer.validate_and_handle()
-
-        if submit_mode == "shift-enter":
-
-            @key_bindings.add("s-enter")
-            def _(event):
-                event.current_buffer.validate_and_handle()
-
-        session = PromptSession(multiline=True, key_bindings=key_bindings)
-        try:
-            return session.prompt(f"{prompt}: ")
-        except KeyboardInterrupt:
-            console.print("\n[yellow]Input cancelled[/yellow]")
-            return ""
-        except EOFError:
-            return ""
-
-    lines = []
-    fallback_help = "Enter for newline, Ctrl+D or empty line to submit"
-    if submit_mode == "shift-enter":
-        fallback_help += " (Shift+Enter requires prompt_toolkit)"
-
-    console.print(f"{prompt} [dim]({fallback_help})[/dim]")
-
-    try:
-        while True:
-            try:
-                line = input()
-                if not line:
-                    break
-                lines.append(line)
-                console.print("... ", end="")
-            except EOFError:
-                break
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Input cancelled[/yellow]")
-        return ""
-
-    return "\n".join(lines)
 
 
 class DeepSeekCLI:
@@ -224,7 +140,7 @@ class DeepSeekCLI:
         try:
             while True:
                 try:
-                    if self.input_mode == InputMode.RICH and RichInputHandler is not None:
+                    if self.input_mode == InputMode.RICH:
                         if self._rich_handler is None:
                             self._rich_handler = RichInputHandler(
                                 file_handler=self.file_handler,
@@ -235,8 +151,6 @@ class DeepSeekCLI:
                                 ),
                             )
                         user_input = self._rich_handler.prompt("> You").strip()
-                    elif self.input_mode == InputMode.MULTILINE:
-                        user_input = multiline_input("> You", self.multiline_submit).strip()
                     else:
                         # Plain single-line input
                         console.print("[bold bright_magenta]> You[/bold bright_magenta]: ", end="")
@@ -408,7 +322,7 @@ def parse_arguments() -> argparse.Namespace:
         help=(
             "Attach a file (or glob pattern) for analysis; the file's text "
             "is folded into the next user message. Repeatable: --file a.py "
-            "--file 'src/*.py'. Inside the REPL use /file, /pick, /files, "
+            "--file 'src/*.py'. Inside the REPL use @-mentions, /pick, /files, "
             "/clearfiles for the same feature."
         ),
     )
@@ -469,13 +383,12 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--input-mode",
         type=str,
-        choices=["rich", "single", "multiline"],
+        choices=["rich", "single"],
         default="rich",
         help=(
             "Input style in the REPL loop. "
             '"rich" (default): prompt_toolkit with @-mention completions; '
-            '"single": plain input() — no history, no completions; '
-            '"multiline": legacy prompt_toolkit — multiline editing without @-mentions'
+            '"single": plain input() — no history, no completions'
         ),
     )
     parser.add_argument(

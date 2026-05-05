@@ -312,11 +312,6 @@ class TestRunInputHandling:
 
 
 class TestMultilineSubmitModes:
-    def test_multiline_flag_stored_on_instance(self):
-        cli = _make_cli_instance()
-        cli.input_mode = _cli_mod.InputMode.MULTILINE
-        assert cli.input_mode == _cli_mod.InputMode.MULTILINE
-
     def test_shift_enter_mode_stored(self):
         cli = _make_cli_instance()
         cli.multiline_submit = "shift-enter"
@@ -326,39 +321,3 @@ class TestMultilineSubmitModes:
         cli = _make_cli_instance()
         cli.multiline_submit = "empty-line"
         assert cli.multiline_submit == "empty-line"
-
-    def test_multiline_input_called_with_correct_submit_mode(self):
-        cli = _make_cli_instance()
-        cli.input_mode = _cli_mod.InputMode.MULTILINE
-        cli.multiline_submit = "shift-enter"
-
-        submitted_modes = []
-
-        def fake_multiline(prompt, mode):
-            submitted_modes.append(mode)
-            raise EOFError
-
-        with patch.object(_cli_mod, "multiline_input", side_effect=fake_multiline):
-            with patch.object(cli, "_cleanup"):
-                with patch.object(cli, "_print_welcome"):
-                    cli.run()
-
-        assert submitted_modes == ["shift-enter"]
-
-    def test_multiline_empty_line_submit_mode_forwarded(self):
-        cli = _make_cli_instance()
-        cli.input_mode = _cli_mod.InputMode.MULTILINE
-        cli.multiline_submit = "empty-line"
-
-        submitted_modes = []
-
-        def fake_multiline(prompt, mode):
-            submitted_modes.append(mode)
-            raise EOFError
-
-        with patch.object(_cli_mod, "multiline_input", side_effect=fake_multiline):
-            with patch.object(cli, "_cleanup"):
-                with patch.object(cli, "_print_welcome"):
-                    cli.run()
-
-        assert submitted_modes == ["empty-line"]

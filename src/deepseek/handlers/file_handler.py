@@ -244,15 +244,8 @@ def pick_files() -> List[str]:
         they cancelled or submitted an empty line). Each entry is later fed
         through :meth:`FileHandler.attach`, so globs and ``~`` are honoured.
     """
-    try:
-        from prompt_toolkit import PromptSession
-        from prompt_toolkit.completion import PathCompleter
-    except ImportError:
-        console.print(
-            "[red]prompt_toolkit is required for the interactive picker. "
-            "Install with: pip install prompt_toolkit[/red]"
-        )
-        return []
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.completion import PathCompleter
 
     completer = PathCompleter(expanduser=True)
     console.print("[cyan]File picker[/cyan]")
