@@ -53,20 +53,15 @@ INPUT_STYLE = Style.from_dict(
 AT_MENTION_RE = re.compile(r"(?:^|\s)(@)([^\s@]*)$")
 
 
-def _find_at_mention(document: Document) -> Optional[Tuple[int, str]]:
+def _find_pattern_at_mention(document: Document) -> Optional[str]:
     """If the cursor is inside or right after an ``@mention``, return
-    ``(start_position, pattern)`` that can be fed to a Completer.
-
+    ``pattern`` that can be fed to a Completer.
     Returns ``None`` if we're not in a mention context.
     """
     text_before_cursor = document.text_before_cursor
     match = AT_MENTION_RE.search(text_before_cursor)
-    if match:
-        # match.group(1) is '@', match.group(2) is the partial path
-        start_pos = len(match.group(1))  # how far back from cursor the word starts
-        pattern = match.group(2)
-        return start_pos, pattern
-    return None
+    # match.group(1) is '@', match.group(2) is the partial path
+    return match.group(2) if match else None
 
 
 # ---------------------------------------------------------------------------
@@ -98,139 +93,71 @@ class FileMentionCompleter(Completer):
     ) -> List[Completion]:
         result: List[Completion] = []
 
-        mention = _find_at_mention(document)
-        if mention is None:
+        pattern = _find_pattern_at_mention(document)
+        if pattern is None:
             return result
 
-        start_pos, pattern = mention
-
-        # Determine the base directory and the partial name
+        # Determine the base directory and the partial name.
         # Support paths like @src/main -> base=src/, partial=main
-        if "/" in pattern or "\\" in pattern:
-            base_dir = os.path.dirname(pattern)
-            partial = os.path.basename(pattern)
+        # NOTE: pathlib normalises trailing slashes away, and that is not what we want:
+        #   Path("src/") == Path("src")
+        # so we do this:
+        if pattern.endswith("/") or pattern.endswith("\\"):
+            search_path = Path(pattern)
+            partial = ""
         else:
-            base_dir = ""
-            partial = pattern
+            pat_path = Path(pattern)
+            search_path = pat_path.parent
+            partial = pat_path.name
 
-        # Resolve the base directory for searching
-        search_dir = os.path.expanduser(base_dir) if self.expanduser else base_dir
-        if search_dir and not os.path.isdir(search_dir):
-            # The base directory doesn't exist yet; try to find it as a partial
-            # This handles cases like @src/ma where src exists but ma is partial
-            parent = os.path.dirname(search_dir)
-            partial = (
-                os.path.basename(search_dir) + "/" + partial
-                if partial
-                else os.path.basename(search_dir)
-            )
-            search_dir = parent if parent else "."
+        # Resolve the base directory — expand ~ if configured.
+        if self.expanduser:
+            search_path = search_path.expanduser()
 
-        # Expand user home
-        if self.expanduser and "~" in partial:
-            partial = os.path.expanduser(partial)
-
-        # Gather matching paths
-        try:
-            entries: List[str] = []
-            if search_dir and os.path.isdir(search_dir):
-                try:
-                    entries = os.listdir(search_dir)
-                except PermissionError:
-                    entries = []
-            elif not search_dir or search_dir == ".":
-                entries = os.listdir(".")
-            elif search_dir and os.path.isdir(os.path.dirname(search_dir)):
-                try:
-                    entries = [os.path.basename(search_dir)]
-                except PermissionError:
-                    entries = []
-
-            # Filter and build completions
-            partial_lower = partial.lower()
-            matched = 0
-
-            for entry in sorted(entries):
-                if matched >= self.max_completions:
-                    break
-
-                entry_lower = entry.lower()
-                if partial_lower and not entry_lower.startswith(partial_lower):
-                    # Fuzzy: check if partial is a substring
-                    if partial_lower not in entry_lower:
-                        continue
-
-                full_path = os.path.join(search_dir, entry) if search_dir else entry
-                is_dir = os.path.isdir(
-                    os.path.expanduser(full_path) if self.expanduser else full_path
+        # Gather matching entries.
+        entries = sorted(search_path.glob(partial + "*"), key=lambda e: e.name)
+        # Filter and build completions.
+        matched = 0
+        for entry in entries:
+            if matched >= self.max_completions:
+                break
+            # Reconstruction of the full relative path for the completion
+            # display in the dropdown. The inserted text is only the entry's
+            # basename so the @ symbol and any directory prefix already in
+            # the buffer are preserved.
+            rel_path = str(entry)
+            if entry.is_dir() and self.include_dirs:
+                result.append(
+                    Completion(
+                        entry.name + "/",
+                        start_position=-len(partial),
+                        display=f"{rel_path}/ ",
+                        display_meta="📁 directory",
+                        style="fg:#4a9eff",
+                    )
                 )
-
-                if is_dir and self.include_dirs:
-                    display = f"{full_path}/"
-                    completion_text = f"{full_path}/"
-                    result.append(
-                        Completion(
-                            completion_text,
-                            start_position=-start_pos - len(partial),
-                            display=display,
-                            display_meta="📁 directory",
-                            style="fg:#4a9eff",
-                        )
+                matched += 1
+            elif entry.is_file():
+                display_meta = _get_path_meta(str(entry))
+                result.append(
+                    Completion(
+                        entry.name,
+                        start_position=-len(partial),
+                        display=rel_path,
+                        display_meta=display_meta,
                     )
-                    matched += 1
-                elif not is_dir:
-                    # Check if it's a likely text file (skip binaries)
-                    ext = Path(entry).suffix.lower()
-                    binary_exts = {
-                        ".exe",
-                        ".dll",
-                        ".so",
-                        ".dylib",
-                        ".bin",
-                        ".obj",
-                        ".o",
-                        ".a",
-                        ".lib",
-                        ".png",
-                        ".jpg",
-                        ".jpeg",
-                        ".gif",
-                        ".bmp",
-                        ".ico",
-                        ".pyc",
-                        ".pyo",
-                        ".class",
-                        ".jar",
-                        ".zip",
-                        ".tar",
-                        ".gz",
-                        ".rar",
-                        ".7z",
-                    }
-                    if ext in binary_exts:
-                        continue
-
-                    display = full_path
-                    display_meta = _get_file_meta(full_path)
-                    result.append(
-                        Completion(
-                            full_path,
-                            start_position=-start_pos - len(partial),
-                            display=display,
-                            display_meta=display_meta,
-                        )
-                    )
-                    matched += 1
-        except OSError:
-            pass
-
+                )
+                matched += 1
         return result
 
 
-def _get_file_meta(path: str) -> str:
+def _get_path_meta(path_str: str) -> str:
     """Return a short metadata string for a file (size, type)."""
+    path = Path(path_str)
+    if path.is_dir():
+        return "📁 directory"
     try:
-        size = os.path.getsize(path)
+        size = path.stat().st_size
         if size < 1024:
             size_str = f"{size} B"
         elif size < 1024 * 1024:
@@ -239,55 +166,7 @@ def _get_file_meta(path: str) -> str:
             size_str = f"{size / (1024 * 1024):.1f} MB"
     except OSError:
         size_str = "?"
-
-    # Guess file type from extension
-    ext = Path(path).suffix.lower()
-    lang_map = {
-        ".py": "🐍 Python",
-        ".js": "🟨 JS",
-        ".ts": "🔵 TS",
-        ".tsx": "⚛️ TSX",
-        ".jsx": "⚛️ JSX",
-        ".rs": "🦀 Rust",
-        ".go": "🔷 Go",
-        ".java": "☕ Java",
-        ".c": "⚙️ C",
-        ".cpp": "⚙️ C++",
-        ".h": "📐 Header",
-        ".hpp": "📐 Header",
-        ".rb": "💎 Ruby",
-        ".php": "🐘 PHP",
-        ".swift": "🟠 Swift",
-        ".kt": "🟣 Kotlin",
-        ".scala": "🔶 Scala",
-        ".sh": "📜 Shell",
-        ".bash": "📜 Bash",
-        ".zsh": "📜 Zsh",
-        ".ps1": "📜 PowerShell",
-        ".md": "📝 Markdown",
-        ".rst": "📝 RST",
-        ".txt": "📄 Text",
-        ".json": "📋 JSON",
-        ".yaml": "📋 YAML",
-        ".yml": "📋 YAML",
-        ".toml": "📋 TOML",
-        ".ini": "📋 INI",
-        ".cfg": "📋 Config",
-        ".xml": "📋 XML",
-        ".html": "🌐 HTML",
-        ".css": "🎨 CSS",
-        ".scss": "🎨 SCSS",
-        ".less": "🎨 LESS",
-        ".sql": "🗃️ SQL",
-        ".gitignore": "🙈 Git",
-        ".dockerfile": "🐳 Docker",
-        "dockerfile": "🐳 Docker",
-        ".makefile": "🔨 Make",
-        "makefile": "🔨 Make",
-    }
-    label = lang_map.get(ext.lower(), "📄 File")
-
-    return f"{label} · {size_str}"
+    return size_str
 
 
 # ---------------------------------------------------------------------------
