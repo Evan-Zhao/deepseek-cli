@@ -84,6 +84,7 @@ def _make_args(**kwargs):
         raw=False,
         system="You are a helpful assistant.",
         no_stream=False,
+        no_rich_input=False,
         multiline=False,
         multiline_submit="empty-line",
         json=False,
@@ -259,6 +260,8 @@ class TestResolveDirsLegacy:
 def _make_cli_instance():
     """Build a DeepSeekCLI instance with all heavy collaborators mocked out."""
     cli = _cli_mod.DeepSeekCLI.__new__(_cli_mod.DeepSeekCLI)
+    cli.rich_input = False
+    cli._rich_handler = None
     cli.multiline = False
     cli.multiline_submit = "empty-line"
     cli.chat_handler = MagicMock()
