@@ -84,8 +84,7 @@ def _make_args(**kwargs):
         raw=False,
         system="You are a helpful assistant.",
         no_stream=False,
-        no_rich_input=False,
-        multiline=False,
+        input_mode="rich",
         multiline_submit="empty-line",
         json=False,
         beta=False,
@@ -260,9 +259,8 @@ class TestResolveDirsLegacy:
 def _make_cli_instance():
     """Build a DeepSeekCLI instance with all heavy collaborators mocked out."""
     cli = _cli_mod.DeepSeekCLI.__new__(_cli_mod.DeepSeekCLI)
-    cli.rich_input = False
+    cli.input_mode = _cli_mod.InputMode.SINGLE
     cli._rich_handler = None
-    cli.multiline = False
     cli.multiline_submit = "empty-line"
     cli.chat_handler = MagicMock()
     cli.command_handler = MagicMock()
@@ -316,8 +314,8 @@ class TestRunInputHandling:
 class TestMultilineSubmitModes:
     def test_multiline_flag_stored_on_instance(self):
         cli = _make_cli_instance()
-        cli.multiline = True
-        assert cli.multiline is True
+        cli.input_mode = _cli_mod.InputMode.MULTILINE
+        assert cli.input_mode == _cli_mod.InputMode.MULTILINE
 
     def test_shift_enter_mode_stored(self):
         cli = _make_cli_instance()
@@ -331,7 +329,7 @@ class TestMultilineSubmitModes:
 
     def test_multiline_input_called_with_correct_submit_mode(self):
         cli = _make_cli_instance()
-        cli.multiline = True
+        cli.input_mode = _cli_mod.InputMode.MULTILINE
         cli.multiline_submit = "shift-enter"
 
         submitted_modes = []
@@ -349,7 +347,7 @@ class TestMultilineSubmitModes:
 
     def test_multiline_empty_line_submit_mode_forwarded(self):
         cli = _make_cli_instance()
-        cli.multiline = True
+        cli.input_mode = _cli_mod.InputMode.MULTILINE
         cli.multiline_submit = "empty-line"
 
         submitted_modes = []

@@ -4,6 +4,7 @@ import argparse
 import atexit
 import signal
 import sys
+from enum import Enum
 from typing import Optional
 
 from pyfiglet import Figlet
@@ -19,6 +20,25 @@ from deepseek.handlers.command_handler import CommandHandler
 from deepseek.handlers.error_handler import ErrorHandler
 from deepseek.handlers.file_handler import FileHandler
 from deepseek.utils.rich_input import RichInputHandler
+
+
+class InputMode(Enum):
+    """How user input is collected inside the REPL loop.
+
+    ``RICH``
+        ``RichInputHandler`` (``prompt_toolkit`` with ``@``-mention
+        completions).  Always supports multi-line editing.
+    ``SINGLE``
+        Plain ``input()`` — single-line, no completions, no history.
+    ``MULTILINE``
+        Legacy ``multiline_input()`` — ``prompt_toolkit`` without
+        ``@``-mentions.
+    """
+
+    RICH = "rich"
+    SINGLE = "single"
+    MULTILINE = "multiline"
+
 
 console = Console()
 
@@ -107,18 +127,16 @@ class DeepSeekCLI:
         self,
         *,
         stream: bool = True,
-        multiline: bool = False,
+        input_mode: InputMode = InputMode.RICH,
         multiline_submit: str = "empty-line",
-        rich_input: bool = True,
     ) -> None:
         self.api_client = APIClient()
         self.chat_handler = ChatHandler(stream=stream)
         self.file_handler = FileHandler()
         self.command_handler = CommandHandler(self.api_client, self.chat_handler, self.file_handler)
         self.error_handler = ErrorHandler()
-        self.multiline = multiline
+        self.input_mode = input_mode
         self.multiline_submit = multiline_submit
-        self.rich_input = rich_input
 
         # Build the rich input handler (lazy — initialised on first use)
         self._rich_handler: Optional[RichInputHandler] = None
@@ -191,8 +209,8 @@ class DeepSeekCLI:
 
         self._print_welcome()
 
-        # Show multiline mode status if enabled
-        if self.multiline:
+        # Show multiline mode status if relevant
+        if self.input_mode != InputMode.SINGLE:
             if self.multiline_submit == "shift-enter":
                 console.print(
                     "[cyan]Multiline mode enabled: Enter for newlines, Shift+Enter or Ctrl+D to submit[/cyan]\n"
@@ -205,22 +223,21 @@ class DeepSeekCLI:
         try:
             while True:
                 try:
-                    # Use the rich input handler (with @-mention support) when available
-                    if self.rich_input and RichInputHandler is not None:
+                    if self.input_mode == InputMode.RICH and RichInputHandler is not None:
                         if self._rich_handler is None:
                             self._rich_handler = RichInputHandler(
                                 file_handler=self.file_handler,
-                                multiline=self.multiline,
+                                multiline=True,
                                 submit_mode=self.multiline_submit,
                                 mention_callback=lambda p: console.print(
                                     f"[green]📎 Attached:[/green] {p}"
                                 ),
                             )
                         user_input = self._rich_handler.prompt("> You").strip()
-                    elif self.multiline:
+                    elif self.input_mode == InputMode.MULTILINE:
                         user_input = multiline_input("> You", self.multiline_submit).strip()
                     else:
-                        # Use plain input() instead of Prompt.ask() to avoid conflicts with readline
+                        # Plain single-line input
                         console.print("[bold bright_magenta]> You[/bold bright_magenta]: ", end="")
                         user_input = input().strip()
 
@@ -449,10 +466,16 @@ def parse_arguments() -> argparse.Namespace:
 
     # Input behavior
     parser.add_argument(
-        "--multiline",
-        action="store_true",
-        default=False,
-        help="Enable multiline input mode (Enter for newlines, empty line or Ctrl+D to submit by default)",
+        "--input-mode",
+        type=str,
+        choices=["rich", "single", "multiline"],
+        default="rich",
+        help=(
+            "Input style in the REPL loop. "
+            '"rich" (default): prompt_toolkit with @-mention completions; '
+            '"single": plain input() — no history, no completions; '
+            '"multiline": legacy prompt_toolkit — multiline editing without @-mentions'
+        ),
     )
     parser.add_argument(
         "--multiline-submit",
@@ -460,13 +483,6 @@ def parse_arguments() -> argparse.Namespace:
         choices=["shift-enter", "empty-line"],
         default="empty-line",
         help="Multiline submit mode: empty-line (default) or shift-enter (requires terminal support)",
-    )
-    parser.add_argument(
-        "--no-rich-input",
-        action="store_true",
-        default=False,
-        dest="no_rich_input",
-        help="Disable the enhanced input experience (@ file mentions, completion popups) and fall back to standard input",
     )
 
     # Sampling / penalty parameters (mirror REPL /temp, /freq, /pres, /top_p)
@@ -564,9 +580,8 @@ def main() -> None:
 
     cli = DeepSeekCLI(
         stream=not args.no_stream,
-        multiline=args.multiline,
+        input_mode=InputMode(args.input_mode),
         multiline_submit=args.multiline_submit,
-        rich_input=not args.no_rich_input,
     )
 
     # Apply REPL-equivalent flags (temp, freq, pres, top_p, stop, json, beta, prefix, fim)

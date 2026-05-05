@@ -2,7 +2,6 @@
 
 import json
 import os
-import shlex
 from typing import Optional, Tuple
 
 from deepseek.api.client import APIClient
@@ -211,7 +210,7 @@ class CommandHandler:
             if not files:
                 return (
                     True,
-                    "No files attached. Use /file <path>, /file <glob>, or /pick to attach.",
+                    "No files attached. Use @<path> in your message or /pick to attach.",
                 )
             lines = ["Attached files (will be sent with next message):"]
             for i, f in enumerate(files):
@@ -220,23 +219,6 @@ class CommandHandler:
             total = self.file_handler.total_size()
             lines.append(f"Total: {len(files)} file(s), {total} bytes")
             return True, "\n".join(lines)
-
-        elif command_lower == "/file" or command_lower.startswith("/file "):
-            arg = command_raw[5:].strip() if len(command_raw) > 5 else ""
-            if not arg:
-                return True, (
-                    "Usage: /file <path-or-glob> [more paths...]\n"
-                    "  Examples:\n"
-                    "    /file src/main.py\n"
-                    "    /file src/*.py\n"
-                    "    /file ~/notes/todo.md README.md\n"
-                    "  Tip: use /pick for an interactive picker with tab completion."
-                )
-            try:
-                tokens = shlex.split(arg, posix=(os.name != "nt"))
-            except ValueError:
-                tokens = arg.split()
-            return True, self._attach_and_summarize(tokens)
 
         elif command_lower == "/pick":
             tokens = pick_files()
@@ -323,7 +305,7 @@ class CommandHandler:
   /system X    - Set a custom system message
   /clear       - Clear conversation history
   /history     - Display conversation history
-  /file P...   - Attach file(s) for the next message (paths/globs, e.g. src/*.py)
+  @path        - Mention a file inline (e.g. @src/main.py); auto-attached on submit
   /pick        - Open an interactive file picker (tab completion, multi-select)
   /files       - List currently attached files
   /dropfile X  - Remove an attached file by index (see /files) or path

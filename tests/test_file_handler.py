@@ -191,44 +191,11 @@ class TestCommandHandlerFileCommands:
         assert cont is True
         assert "No files attached" in msg
 
-    def test_file_without_args_shows_usage(self):
-        ch, _ = _make_command_handler()
-        cont, msg = ch.handle_command("/file")
-        assert cont is True
-        assert "Usage:" in msg
-
-    def test_file_attaches(self, tmp_path):
-        f = tmp_path / "code.py"
-        f.write_text("print('hi')", encoding="utf-8")
-        ch, fh = _make_command_handler()
-        cont, msg = ch.handle_command(f"/file {f}")
-        assert cont is True
-        assert "Attached 1 file(s)" in msg
-        assert len(fh.list_attachments()) == 1
-
-    def test_file_glob_expands(self, tmp_path):
-        for n in ("a.py", "b.py"):
-            (tmp_path / n).write_text("x", encoding="utf-8")
-        ch, fh = _make_command_handler()
-        cont, msg = ch.handle_command(f"/file {tmp_path / '*.py'}")
-        assert cont is True
-        assert len(fh.list_attachments()) == 2
-
-    def test_file_multiple_paths(self, tmp_path):
-        f1 = tmp_path / "a.txt"
-        f1.write_text("A", encoding="utf-8")
-        f2 = tmp_path / "b.txt"
-        f2.write_text("B", encoding="utf-8")
-        ch, fh = _make_command_handler()
-        cont, msg = ch.handle_command(f"/file {f1} {f2}")
-        assert cont is True
-        assert len(fh.list_attachments()) == 2
-
     def test_files_lists_attachments(self, tmp_path):
         f = tmp_path / "code.py"
         f.write_text("x", encoding="utf-8")
         ch, fh = _make_command_handler()
-        ch.handle_command(f"/file {f}")
+        fh.attach(str(f))
         cont, msg = ch.handle_command("/files")
         assert cont is True
         assert "Attached files" in msg
@@ -238,7 +205,7 @@ class TestCommandHandlerFileCommands:
         f = tmp_path / "code.py"
         f.write_text("x", encoding="utf-8")
         ch, fh = _make_command_handler()
-        ch.handle_command(f"/file {f}")
+        fh.attach(str(f))
         assert fh.has_attachments()
         cont, msg = ch.handle_command("/clearfiles")
         assert cont is True
@@ -249,7 +216,7 @@ class TestCommandHandlerFileCommands:
         f = tmp_path / "code.py"
         f.write_text("x", encoding="utf-8")
         ch, fh = _make_command_handler()
-        ch.handle_command(f"/file {f}")
+        fh.attach(str(f))
         cont, msg = ch.handle_command("/dropfile 0")
         assert cont is True
         assert "Removed attachment" in msg
@@ -265,7 +232,7 @@ class TestCommandHandlerFileCommands:
         ch, _ = _make_command_handler()
         cont, msg = ch.handle_command("/help")
         assert cont is True
-        assert "/file" in msg
+        assert "@path" in msg
         assert "/pick" in msg
         assert "/files" in msg
         assert "/clearfiles" in msg
