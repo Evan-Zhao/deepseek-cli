@@ -19,7 +19,7 @@ from deepseek.handlers.chat_handler import ChatHandler
 from deepseek.handlers.command_handler import CommandHandler
 from deepseek.handlers.error_handler import ErrorHandler
 from deepseek.handlers.file_handler import FileHandler
-from deepseek.utils.rich_input import RichInputHandler
+from deepseek.utils.rich_input import RichInputHandler, _is_command
 
 
 class InputMode(Enum):
@@ -71,13 +71,14 @@ def multiline_input(prompt: str, submit_mode: str = "shift-enter") -> str:
 
         @key_bindings.add("enter")
         def _(event):
-            if (
-                submit_mode == "empty-line"
-                and event.current_buffer.document.current_line.strip() == ""
+            buf = event.current_buffer
+            text = buf.document.text
+            if _is_command(text) or (
+                submit_mode == "empty-line" and buf.document.current_line.strip() == ""
             ):
-                event.current_buffer.validate_and_handle()
+                buf.validate_and_handle()
             else:
-                event.current_buffer.insert_text("\n")
+                buf.insert_text("\n")
 
         @key_bindings.add("c-d")
         def _(event):

@@ -258,7 +258,11 @@ class RichInputHandler:
 
             @bindings.add("enter", filter=~has_completions)
             def _newline(event: KeyPressEvent):
-                event.current_buffer.insert_text("\n")
+                buf = event.current_buffer
+                if _is_command(buf.document.text):
+                    buf.validate_and_handle()
+                else:
+                    buf.insert_text("\n")
 
             @bindings.add("s-enter")
             def _submit_shift(event: KeyPressEvent):
@@ -269,7 +273,8 @@ class RichInputHandler:
             @bindings.add("enter", filter=~has_completions)
             def _enter_or_submit(event: KeyPressEvent):
                 buf = event.current_buffer
-                if buf.document.current_line.strip() == "":
+                text = buf.document.text
+                if _is_command(text) or buf.document.current_line.strip() == "":
                     buf.validate_and_handle()
                 else:
                     buf.insert_text("\n")
@@ -354,6 +359,23 @@ class RichInputHandler:
                 attached.extend(paths)
 
         return attached
+
+
+# ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
+
+
+def _is_command(text: str) -> bool:
+    """Return ``True`` if *text* looks like a CLI command.
+
+    Commands are either a leading ``/`` (e.g. ``/help``, ``/clear``) or
+    the bare words ``quit``/``exit``.  In all such cases pressing ENTER
+    should submit immediately rather than inserting a newline.
+    """
+    first_line = text.lstrip().split("\n", 1)[0]
+    stripped = first_line.strip()
+    return stripped.startswith("/") or stripped in ("quit", "exit")
 
 
 # ---------------------------------------------------------------------------
